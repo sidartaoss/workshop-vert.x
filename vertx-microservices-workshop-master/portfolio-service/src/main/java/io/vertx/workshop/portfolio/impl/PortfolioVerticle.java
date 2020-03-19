@@ -1,0 +1,44 @@
+package io.vertx.workshop.portfolio.impl;
+
+import static io.vertx.workshop.portfolio.PortfolioService.ADDRESS;
+
+import io.vertx.serviceproxy.ProxyHelper;
+import io.vertx.workshop.common.MicroServiceVerticle;
+import io.vertx.workshop.portfolio.PortfolioService;
+
+/**
+ * A verticle publishing the portfolio service.
+ */
+public class PortfolioVerticle extends MicroServiceVerticle {
+
+  @Override
+  public void start() {
+    super.start();
+
+    // Create the service object
+    PortfolioServiceImpl service = new PortfolioServiceImpl(vertx, discovery, config().getDouble("money", 10000.00));
+
+    // Register the service proxy on the event bus
+    ProxyHelper.registerService(PortfolioService.class, vertx, service, ADDRESS);
+
+    // Publish it in the discovery infrastructure
+    publishEventBusService("portfolio", ADDRESS, PortfolioService.class, ar -> {
+      if (ar.failed()) {
+        ar.cause().printStackTrace();
+      } else {
+        System.out.println("Portfolio service published : " + ar.succeeded());
+      }
+    });
+
+    // TODO
+    //----
+    	publishMessageSource("portfolio-events", "portfolio", ar -> {
+    		if (ar.failed()) {
+    			ar.cause().printStackTrace();
+    		} else {
+    			System.out.println("Portfolio Events service published: " + ar.succeeded());
+    		}
+    	});
+    //----
+  }
+}
